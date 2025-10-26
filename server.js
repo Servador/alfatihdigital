@@ -255,9 +255,6 @@ app.get("/api/products", (req, res) => {
   res.json(Object.values(map));
 });
 
-// ✅ Kurangi stok langsung saat order dibuat
-import { Database as DB } from "better-sqlite3"; // jika belum ada import DB
-
 // Replace endpoint POST /api/orders menjadi ini:
 app.post("/api/orders", (req, res) => {
   const { product_id, variant_id, name, contact, method, total } = req.body;
