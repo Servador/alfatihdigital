@@ -366,6 +366,31 @@ app.delete("/api/admin/variant/:id", verifyToken, (req, res) => {
   res.json({ success: true });
 });
 
+// ✅ UPDATE PRODUK
+app.put("/api/admin/product/:id", verifyToken, (req, res) => {
+  const { name, category, image, stock } = req.body;
+  
+  // Update produk
+  db.prepare(`
+    UPDATE products 
+    SET name=?, category=?, image=?, stock=?
+    WHERE id=?
+  `).run(name, category, image, stock, req.params.id);
+
+  // Sync ulang stok total berdasarkan varian
+  db.prepare(`
+    UPDATE products 
+    SET stock = (
+      SELECT COALESCE(SUM(stock),0)
+      FROM product_variants
+      WHERE product_id = ?
+    )
+    WHERE id = ?
+  `).run(req.params.id, req.params.id);
+
+  res.json({ updated: true });
+});
+
 // ✅ Run Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server berjalan di PORT ${PORT}`));
