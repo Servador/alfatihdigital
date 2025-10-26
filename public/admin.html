@@ -178,246 +178,191 @@
 </div>
 
 <script>
+// ✅ Redirect jika tidak ada token
 const token = localStorage.getItem("adminToken");
 if (!token) {
-  window.location = "login.html";
+  location.href = "login.html";
 }
 
- function authFetch(url, opts={}) {
-  const token = localStorage.getItem('adminToken');
-  const headers = { 'Content-Type': 'application/json', ...(opts.headers||{}) };
-  if (token) headers['Authorization'] = 'Bearer ' + token;
-
-  return fetch(url, { ...opts, headers }).then(res => {
-    if (res.status === 401 || res.status === 403) {
-      localStorage.removeItem('adminToken');
-      window.location = "login.html";
-      return;
-    }
-    return res;
-  });
-}
-  const escAttr = s => String(s ?? '').replace(/"/g,'&quot;');
-
-  async function loadProducts() {
-    const res = await authFetch('/api/admin/products');
-    const data = await res.json();
-    const body = document.getElementById('prodBody');
-    const opt = document.getElementById('addVarProduct');
-    body.innerHTML = ''; opt.innerHTML = '';
-
-    data.forEach(p => {
-      const o = document.createElement('option');
-      o.value = p.id; o.textContent = `${p.id} — ${p.name}`;
-      opt.appendChild(o);
-
-      const tr = document.createElement('tr');
-
-      const stokHtml = `
-  <div class="inline">
-    <span><b>${p.stock ?? 0}</b> total</span>
-  </div>
-`;
-
-      const variantsHTML = (p.variants||[]).map(v => (`
-  <div class="var-pill">
-    <span class="chip">#${v.id}</span>
-
-    <input class="input" id="vtitle-${v.id}" 
-           value="${v.title}" style="max-width:130px;font-size:13px">
-
-    <div class="inline" style="margin-left:auto">
-      <span class="muted">Rp</span>
-      <input class="input" id="vprice-${v.id}" type="number"
-             value="${v.price}" style="max-width:80px">
-
-      <input class="input" id="vstock-${v.id}" type="number"
-             value="${v.stock}" style="max-width:60px">
-
-      <button class="btn success tiny" onclick="saveVariantPrice(${v.id})">Save</button>
-      <button class="btn danger tiny" onclick="deleteVariant(${v.id})">Hapus</button>
-    </div>
-  </div>
-`)).join('');
-
-      tr.innerHTML = `
-        <td><b>${p.id}</b></td>
-        <td>
-          <div style="font-weight:700">${p.name}</div>
-          <div class="muted tiny">${p.image || '-'}</div>
-        </td>
-        <td>
-  <select class="select" id="cat-${p.id}">
-    ${["Pulsa","Game","Aplikasi Premium","Sosmed"].map(c =>
-      `<option value="${c}" ${p.category === c ? 'selected':''}>${c}</option>`
-    ).join("")}
-  </select>
-</td>
-        <td>${stokHtml}</td>
-        <td>
-          <details class="varlist">
-            <summary>
-              <span class="btn ghost tiny">Lihat/Sembunyikan</span>
-              <span class="muted tiny" style="margin-left:6px">${(p.variants||[]).length} varian</span>
-            </summary>
-            <div style="margin-top:8px">${variantsHTML}</div>
-          </details>
-        </td>
-        <td class="row-actions">
-          <button
-            class="btn warn tiny"
-            onclick="openEditModal(this)"
-            data-id="${p.id}"
-            data-name="${escAttr(p.name)}"
-            data-category="${escAttr(p.category)}"
-            data-image="${escAttr(p.image || '')}"
-            data-stock="${p.stock ?? 0}"
-          >Edit Produk</button>
-        </td>
-      `;
-      body.appendChild(tr);
-    });
-  }
-
-  let editingId = null;
-  const modal = document.getElementById('editProductModal');
-  const closeBtn = document.getElementById('closeEditModal');
-  const saveBtn  = document.getElementById('saveEditProduct');
-
-  function openEditModal(btn){
-    const d = btn.dataset;
-    editingId = +d.id;
-    document.getElementById('editName').value     = d.name || '';
-    document.getElementById('editCategory').value = d.category || '';
-    document.getElementById('editImage').value    = d.image || '';
-    document.getElementById('editStock').value    = d.stock || 0;
-    modal.classList.remove('hidden');
-  }
-  closeBtn.onclick = () => modal.classList.add('hidden');
-  modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.classList.add('hidden'); });
-
-  saveBtn.onclick = async () => {
-    const payload = {
-      name: document.getElementById('editName').value.trim(),
-      category: document.getElementById('editCategory').value.trim(),
-      image: document.getElementById('editImage').value.trim(),
-      stock: +document.getElementById('editStock').value || 0
-    };
-    await authFetch(`/api/admin/product/${editingId}`, {
-      method: "PUT",
-      body: JSON.stringify(payload)
-    });
-    toast("Produk berhasil diperbarui");
-    modal.classList.add('hidden');
-    await loadProducts();
+// ✅ Fetch dengan Authorization otomatis
+async function authFetch(url, opts = {}) {
+  const token = localStorage.getItem("adminToken");
+  const headers = {
+    "Content-Type": "application/json",
+    ...(opts.headers || {})
   };
+  if (token) headers["Authorization"] = "Bearer " + token;
 
-  async function saveVariantPrice(variantId){
-  const elPrice = document.getElementById(`vprice-${variantId}`);
-  const elTitle = document.getElementById(`vtitle-${variantId}`);
-  const elStock = document.getElementById(`vstock-${variantId}`);
+  const res = await fetch(url, { ...opts, headers });
+  
+  if (res.status === 401 || res.status === 403) {
+    localStorage.removeItem("adminToken");
+    location.href = "login.html";
+    throw new Error("unauthorized");
+  }
+  return res;
+}
 
-  const price = +elPrice.value || 0;
-  const title = elTitle?.value?.trim() || elTitle?.dataset.value || '';
-  const stock = +elStock?.value || 0;
+const escAttr = s => String(s ?? "").replace(/"/g, '&quot;');
 
-  await authFetch(`/api/admin/variant/${variantId}`, {
-    method:'PUT',
-    body: JSON.stringify({ title, price, stock })
+// ✅ Load Produk + Varian
+async function loadProducts() {
+  const res = await authFetch("/api/admin/products");
+  const data = await res.json();
+
+  const body = document.getElementById("prodBody");
+  const opt = document.getElementById("addVarProduct");
+  body.innerHTML = "";
+  opt.innerHTML = "";
+
+  data.forEach(p => {
+    const tr = document.createElement("tr");
+
+    const option = document.createElement("option");
+    option.value = p.id;
+    option.textContent = `${p.id} — ${p.name}`;
+    opt.appendChild(option);
+
+    const categories = [
+      "Pulsa",
+      "Game",
+      "Aplikasi Premium",
+      "Paket Data",
+      "Suntik Sosmed"
+    ];
+
+    const variantsHTML = (p.variants || []).map(v => `
+      <div class="var-pill">
+        <span class="chip">#${v.id}</span>
+        <input class="input" id="vtitle-${v.id}" value="${v.title}">
+        <span class="muted" style="margin-left:auto">Rp</span>
+        <input class="input" id="vprice-${v.id}" type="number" value="${v.price}" style="max-width:80px">
+        <input class="input" id="vstock-${v.id}" type="number" value="${v.stock}" style="max-width:60px">
+        <button class="btn success tiny" onclick="saveVariantPrice(${v.id})">Save</button>
+        <button class="btn danger tiny" onclick="deleteVariant(${v.id})">×</button>
+      </div>
+    `).join("");
+
+    tr.innerHTML = `
+      <td><b>${p.id}</b></td>
+      <td>${p.name}</td>
+      <td>
+        <select class="select" id="cat-${p.id}">
+          ${categories.map(c => `
+            <option value="${c}" ${p.category === c ? "selected" : ""}>${c}</option>
+          `).join("")}
+        </select>
+      </td>
+      <td><b>${p.stock ?? 0}</b></td>
+      <td>
+        <details class="varlist">
+          <summary class="btn ghost tiny">Lihat Varian (${(p.variants || []).length})</summary>
+          <div style="margin-top:8px">${variantsHTML}</div>
+        </details>
+      </td>
+    `;
+    body.appendChild(tr);
   });
+}
 
-  toast('Varian tersimpan');
+// ✅ Update varian (harga & stok)
+async function saveVariantPrice(variantId) {
+  await authFetch(`/api/admin/variant/${variantId}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      title: document.getElementById(`vtitle-${variantId}`).value.trim(),
+      price: +document.getElementById(`vprice-${variantId}`).value,
+      stock: +document.getElementById(`vstock-${variantId}`).value
+    })
+  });
+  toast("Varian diperbarui ✅");
   loadProducts();
 }
 
-  async function deleteVariant(variantId){
-    if(!confirm('Hapus varian ini?')) return;
-    await authFetch(`/api/admin/variant/${variantId}`, { method:'DELETE' });
-    toast('Varian dihapus');
-    loadProducts();
-  }
-  document.getElementById('addVarBtn').addEventListener('click', async ()=>{
-    const product_id = +document.getElementById('addVarProduct').value;
-    const title = document.getElementById('addVarTitle').value.trim();
-    const price = +document.getElementById('addVarPrice').value || 0;
-    if(!product_id || !title || !price){ toast('Lengkapi data varian', true); return; }
-    await authFetch(`/api/admin/product/${product_id}/variant`, {
-      method:'POST',
-      body: JSON.stringify({ title, price })
-    });
-    document.getElementById('addVarTitle').value='';
-    document.getElementById('addVarPrice').value='';
-    toast('Varian ditambahkan');
-    loadProducts();
+// ✅ Hapus varian
+async function deleteVariant(id) {
+  if (!confirm("Hapus varian ini?")) return;
+  await authFetch(`/api/admin/variant/${id}`, { method: "DELETE" });
+  toast("Varian terhapus ❌");
+  loadProducts();
+}
+
+// ✅ Tambah Varian
+document.getElementById("addVarBtn")?.addEventListener("click", async () => {
+  const product_id = +document.getElementById("addVarProduct").value;
+  const title = document.getElementById("addVarTitle").value.trim();
+  const price = +document.getElementById("addVarPrice").value;
+  if (!product_id || !title || !price) return toast("Isi lengkap dulu", true);
+
+  await authFetch(`/api/admin/product/${product_id}/variant`, {
+    method: "POST",
+    body: JSON.stringify({ title, price })
   });
 
-  async function loadOrders(){
-    const res = await authFetch('/api/admin/orders');
-    const data = await res.json();
-    const body = document.getElementById('orderBody');
-    body.innerHTML = '';
-    data.forEach(o=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><b>${o.id}</b></td>
-        <td>
-          <div>${o.name || '-'}</div>
-          <div class="muted tiny">${o.contact || ''}</div>
-        </td>
-        <td>${o.product_name || '-'}</td>
-        <td>${o.variant_title || '-'}</td>
-        <td>Rp ${(+o.total||0).toLocaleString('id-ID')}</td>
-        <td>
-          <div class="inline">
-            <select class="select status-select" id="st-${o.id}">
-              ${['pending','paid','done','canceled'].map(s =>
-                `<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`
-              ).join('')}
-            </select>
-            <button class="btn success tiny" onclick="saveOrderStatus(${o.id})">Save</button>
-          </div>
-        </td>
-        <td>${new Date(o.createdAt).toLocaleString('id-ID')}</td>
-      `;
-      body.appendChild(tr);
-    });
-  }
-  async function saveOrderStatus(orderId){
-    const status = document.getElementById(`st-${orderId}`).value;
-    await authFetch(`/api/admin/orders/${orderId}/status`, {
-      method:'POST',
-      body: JSON.stringify({ status })
-    });
-    toast('Status pesanan tersimpan');
-    await Promise.all([loadOrders(), loadProducts()]);
-  }
+  toast("Varian ditambahkan ✅");
+  document.getElementById("addVarTitle").value = "";
+  document.getElementById("addVarPrice").value = "";
+  loadProducts();
+});
 
-  function toast(msg, isErr=false){
-    const t = document.createElement('div');
-    t.textContent = msg;
-    t.style.cssText = `
-      position:fixed; left:50%; transform:translateX(-50%); bottom:24px;
-      background:${isErr?'#e11d48':'#111'}; color:#fff; padding:10px 14px; border-radius:10px;
-      box-shadow:0 10px 30px rgba(0,0,0,.2); z-index:9999; font-weight:600
+// ✅ Load Pesanan
+async function loadOrders() {
+  const res = await authFetch("/api/admin/orders");
+  const data = await res.json();
+  const body = document.getElementById("orderBody");
+  body.innerHTML = "";
+
+  data.forEach(o => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${o.id}</td>
+      <td>${o.name || "-"}<br><span class="muted tiny">${o.contact}</span></td>
+      <td>${o.product_name}</td>
+      <td>${o.variant_title}</td>
+      <td>Rp ${(+o.total).toLocaleString("id-ID")}</td>
+      <td>
+        <select id="st-${o.id}">
+          ${["pending", "paid", "done", "canceled"].map(s => `
+            <option value="${s}" ${o.status === s ? "selected" : ""}>${s}</option>
+          `).join("")}
+        </select>
+        <button class="btn success tiny" onclick="saveOrderStatus(${o.id})">Update</button>
+      </td>
+      <td>${new Date(o.createdAt).toLocaleString("id-ID")}</td>
     `;
-    document.body.appendChild(t);
-    setTimeout(()=>t.remove(), 1800);
-  }
+    body.appendChild(tr);
+  });
+}
 
-  document.getElementById('logoutBtn').onclick = ()=>{
-  localStorage.removeItem('adminToken');
-  location.href = 'login.html';
-};
+// ✅ Save Status Pesanan
+async function saveOrderStatus(id) {
+  const status = document.getElementById(`st-${id}`).value;
+  await authFetch(`/api/admin/orders/${id}/status`, {
+    method: "POST",
+    body: JSON.stringify({ status })
+  });
+  toast("Status disimpan ✅");
+  loadOrders();
+  loadProducts();
+}
 
-  (async ()=>{
-    try{
-      await loadProducts();
-      await loadOrders();
-    }catch(e){
-      console.error(e);
-      toast('Gagal memuat data. Pastikan sudah login & server hidup.', true);
-    }
-  })();
+// ✅ Logout
+document.getElementById("logoutBtn")?.addEventListener("click", () => {
+  localStorage.removeItem("adminToken");
+  location.href = "login.html";
+});
+
+// ✅ Toast Helper
+function toast(msg, err = false) {
+  alert(msg);
+}
+
+// ✅ Run at start
+(async () => {
+  await loadProducts();
+  await loadOrders();
+})();
 </script>
+
 </body>
 </html>
