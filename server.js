@@ -296,6 +296,76 @@ app.get("/", (_, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// ================= ADMIN API =================
+
+// ✅ Ambil semua produk + varian (PROTECTED)
+app.get("/api/admin/products", verifyToken, (req, res) => {
+  const products = db.prepare("SELECT * FROM products").all();
+  const variants = db.prepare("SELECT * FROM product_variants").all();
+
+  const map = {};
+  products.forEach(p => map[p.id] = { ...p, variants: [] });
+  variants.forEach(v => map[v.product_id]?.variants.push(v));
+
+  res.json(Object.values(map));
+});
+
+// ✅ Ambil semua pesanan (PROTECTED)
+app.get("/api/admin/orders", verifyToken, (req, res) => {
+  const rows = db.prepare(`
+    SELECT o.*, p.name AS product_name, v.title AS variant_title
+    FROM orders o
+    LEFT JOIN products p ON p.id = o.product_id
+    LEFT JOIN product_variants v ON v.id = o.variant_id
+    ORDER BY o.id DESC
+  `).all();
+  res.json(rows);
+});
+
+// ✅ Update Status Pesanan
+app.post("/api/admin/orders/:id/status", verifyToken, (req, res) => {
+  const { status } = req.body;
+  db.prepare("UPDATE orders SET status=? WHERE id=?")
+    .run(status, req.params.id);
+  res.json({ success: true });
+});
+
+// ✅ Update produk
+app.put("/api/admin/product/:id", verifyToken, (req, res) => {
+  const { name, category, image, stock } = req.body;
+  db.prepare(`
+    UPDATE products SET name=?, category=?, image=?, stock=? 
+    WHERE id=?
+  `).run(name, category, image, stock, req.params.id);
+  res.json({ success: true });
+});
+
+// ✅ Tambah varian
+app.post("/api/admin/product/:id/variant", verifyToken, (req, res) => {
+  const { title, price } = req.body;
+  db.prepare(`
+    INSERT INTO product_variants (product_id, title, price, stock)
+    VALUES (?,?,?,10)
+  `).run(req.params.id, title, price);
+  res.json({ success: true });
+});
+
+// ✅ Update varian (harga + stok + judul)
+app.put("/api/admin/variant/:id", verifyToken, (req, res) => {
+  const { title, price, stock } = req.body;
+  db.prepare(`
+    UPDATE product_variants SET title=?, price=?, stock=? WHERE id=?
+  `).run(title, price, stock, req.params.id);
+  res.json({ success: true });
+});
+
+// ✅ Hapus varian
+app.delete("/api/admin/variant/:id", verifyToken, (req, res) => {
+  db.prepare("DELETE FROM product_variants WHERE id=?")
+    .run(req.params.id);
+  res.json({ success: true });
+});
+
 // ✅ Run Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server berjalan di PORT ${PORT}`));
