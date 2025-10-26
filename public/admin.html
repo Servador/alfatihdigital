@@ -267,16 +267,22 @@ async function loadProducts() {
 
 // ✅ Update varian (harga & stok)
 async function saveVariantPrice(variantId) {
-  await authFetch(`/api/admin/variant/${variantId}`, {
+  const elPrice = document.getElementById(`vprice-${variantId}`);
+  const elTitle = document.getElementById(`vtitle-${variantId}`);
+  const elStock = document.getElementById(`vstock-${variantId}`);
+
+  const price = +elPrice.value || 0;
+  const title = elTitle?.value?.trim() || '';
+  const stock = +elStock?.value || 0;
+
+  const res = await authFetch(`/api/admin/variant/${variantId}`, {
     method: "PUT",
-    body: JSON.stringify({
-      title: document.getElementById(`vtitle-${variantId}`).value.trim(),
-      price: +document.getElementById(`vprice-${variantId}`).value,
-      stock: +document.getElementById(`vstock-${variantId}`).value
-    })
+    body: JSON.stringify({ title, price, stock })
   });
-  toast("Varian diperbarui ✅");
-  loadProducts();
+
+  // ✅ Setelah varian berubah → sync ulang stok produk
+  await loadProducts();
+  toast("Stok varian diperbarui!");
 }
 
 // ✅ Hapus varian
