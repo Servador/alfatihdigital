@@ -66,19 +66,134 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 `);
 
-// ✅ Seed Minimal if empty
-const checkProduct = db.prepare("SELECT COUNT(*) as c FROM products").get();
-if (checkProduct.c === 0) {
-  console.log("🔥 Seeding minimal product");
+// ✅ SEED KOMPLIT: jalan hanya saat DB masih kosong
+(function seedIfEmpty() {
+  const row = db.prepare("SELECT COUNT(*) AS c FROM products").get();
+  if (row.c > 0) return; // sudah ada data, jangan seed lagi
 
-  const p = db.prepare("INSERT INTO products (name, category, image, stock) VALUES (?,?,?,?)");
-  const v = db.prepare("INSERT INTO product_variants (product_id, title, price, stock) VALUES (?,?,?,?)");
+  console.log("⏳ Seeding full catalog...");
 
-  const prod = p.run("Contoh Produk", "Kategori", "img/placeholder.png", 10);
-  v.run(prod.lastInsertRowid, "Varian Contoh", 10000, 10);
+  // 1) Definisi produk
+  const products = [
+    // Aplikasi Premium
+    { name: "Netflix Premium", category: "Aplikasi Premium", image: "img/netflix.png" },
+    { name: "CapCut Pro", category: "Aplikasi Premium", image: "img/capcut.png" },
+    { name: "Prime Video", category: "Aplikasi Premium", image: "img/prime.png" },
+    { name: "Canva Pro", category: "Aplikasi Premium", image: "img/canva.png" },
+    { name: "Disney", category: "Aplikasi Premium", image: "img/disney.png" },
+    { name: "Vidio", category: "Aplikasi Premium", image: "img/vidio.png" },
+    { name: "Wetv", category: "Aplikasi Premium", image: "img/wetv.png" },
+    { name: "Spotify", category: "Aplikasi Premium", image: "img/spotify.png" },
+    { name: "YouTube", category: "Aplikasi Premium", image: "img/yt.png" },
+    { name: "Zoom Pro", category: "Aplikasi Premium", image: "img/zoom.png" },
+    { name: "Drama Box", category: "Aplikasi Premium", image: "img/drama.png" },
+    { name: "Gemini", category: "Aplikasi Premium", image: "img/gemini.png" },
+    { name: "CHAT GPT", category: "Aplikasi Premium", image: "img/chatgpts.png" },
+    { name: "Perplexity", category: "Aplikasi Premium", image: "img/perplexity.png" },
+    { name: "GET CONTACT", category: "Aplikasi Premium", image: "img/gtc.png" },
 
-  console.log("✅ Seeding selesai");
-}
+    // Game
+    { name: "Diamond ML", category: "Game", image: "img/ml.png" },
+    { name: "Diamond FF", category: "Game", image: "img/ff.png" },
+
+    // Pulsa
+    { name: "Pulsa Telkomsel", category: "Pulsa", image: "img/telkom.png" },
+    { name: "Pulsa IM3", category: "Pulsa", image: "img/im3.png" },
+    { name: "Pulsa AXIS", category: "Pulsa", image: "img/axis.png" },
+    { name: "Pulsa XL", category: "Pulsa", image: "img/xl.png" },
+    { name: "Pulsa By.U", category: "Pulsa", image: "img/byu.png" },
+
+    // Paket Data
+    { name: "Paket Data Telkomsel", category: "Paket Data", image: "img/pdtelkom.png" },
+    { name: "Paket Data IM3", category: "Paket Data", image: "img/pdim3.png" },
+    { name: "Paket Data AXIS", category: "Paket Data", image: "img/pdaxis.png" },
+    { name: "Paket Data XL", category: "Paket Data", image: "img/pdxl.png" },
+    { name: "Paket Data By.U", category: "Paket Data", image: "img/pdbyu.png" },
+
+    // Suntik Sosmed
+    { name: "Suntik Instagram", category: "Suntik Sosmed", image: "img/ig.png" },
+    { name: "Suntik Tiktok", category: "Suntik Sosmed", image: "img/tiktok.png" },
+  ];
+
+  // 2) Definisi varian (harga sementara 10000; stok 10)
+  const V = (title, price = 10000, stock = 10) => ({ title, price, stock });
+
+  const variants = {
+    // Aplikasi Premium (paket standar)
+    "Netflix Premium": [V("Private 1 Bulan"), V("Semi Private 1 Bulan"), V("Sharing 1 Bulan")],
+    "CapCut Pro": [V("1 Bulan"), V("6 Bulan")],
+    "Prime Video": [V("Private 1 Bulan"), V("Semi Private 1 Bulan"), V("Sharing 1 Bulan")],
+    "Canva Pro": [V("Private 1 Bulan"), V("Semi Private 1 Bulan"), V("Sharing 1 Bulan")],
+    "Disney": [V("Private 1 Bulan"), V("Sharing 1 Bulan")],
+    "Vidio": [V("Private 1 Bulan"), V("Sharing 1 Bulan")],
+    "Wetv": [V("Private 1 Bulan"), V("Sharing 1 Bulan")],
+    "Spotify": [V("Private 1 Bulan"), V("Sharing 1 Bulan")],
+    "YouTube": [V("Premium 1 Bulan")],
+    "Zoom Pro": [V("1 Bulan"), V("6 Bulan")],
+    "Drama Box": [V("Private 1 Bulan")],
+    "Gemini": [V("Pro 1 Bulan")],
+    "CHAT GPT": [V("Plus 1 Bulan")],
+    "Perplexity": [V("Pro 1 Bulan")],
+    "GET CONTACT": [V("Premium 1 Bulan")],
+
+    // Game
+    "Diamond ML": [V("Top Up 86 Diamond"), V("Top Up 172 Diamond")],
+    "Diamond FF": [V("Top Up 12 Diamond"), V("Top Up 50 Diamond")],
+
+    // Pulsa
+    "Pulsa Telkomsel": [V("Pulsa 25K"), V("Pulsa 50K")],
+    "Pulsa IM3": [V("Pulsa 25K"), V("Pulsa 50K")],
+    "Pulsa AXIS": [V("Pulsa 25K"), V("Pulsa 50K")],
+    "Pulsa XL": [V("Pulsa 25K"), V("Pulsa 50K")],
+    "Pulsa By.U": [V("Pulsa 25K"), V("Pulsa 50K")],
+
+    // Paket Data
+    "Paket Data Telkomsel": [V("5 GB"), V("10 GB")],
+    "Paket Data IM3": [V("5 GB"), V("10 GB")],
+    "Paket Data AXIS": [V("5 GB"), V("10 GB")],
+    "Paket Data XL": [V("5 GB"), V("10 GB")],
+    "Paket Data By.U": [V("5 GB"), V("10 GB")],
+
+    // Suntik Sosmed
+    "Suntik Instagram": [V("1000 Followers"), V("5000 Followers")],
+    "Suntik Tiktok": [V("1000 Followers"), V("5000 Followers")],
+  };
+
+  // 3) Insert dalam transaksi (cepat & atomic)
+  const insertProduct = db.prepare(
+    "INSERT INTO products (name, category, image, stock) VALUES (?,?,?,0)"
+  );
+  const insertVariant = db.prepare(
+    "INSERT INTO product_variants (product_id, title, price, stock) VALUES (?,?,?,?)"
+  );
+  const syncProduct = db.prepare(`
+    UPDATE products
+    SET stock = (
+      SELECT COALESCE(SUM(stock),0)
+      FROM product_variants
+      WHERE product_id = ?
+    )
+    WHERE id = ?
+  `);
+
+  const tx = db.transaction(() => {
+    for (const p of products) {
+      const res = insertProduct.run(p.name, p.category, p.image);
+      const pid = res.lastInsertRowid;
+
+      // varian untuk produk tsb (jika tidak ada, biarkan kosong)
+      (variants[p.name] || []).forEach(v =>
+        insertVariant.run(pid, v.title, v.price, v.stock)
+      );
+
+      // hitung & set total stok
+      syncProduct.run(pid, pid);
+    }
+  });
+
+  tx();
+  console.log("✅ Seeding full catalog: DONE");
+})();
 
 // ===== AUTH =====
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@mail.com";
