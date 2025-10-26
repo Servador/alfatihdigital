@@ -255,6 +255,66 @@ app.get("/api/products", (req, res) => {
   res.json(Object.values(map));
 });
 
+// ✅ Kurangi stok langsung saat order dibuat
+import { Database as DB } from "better-sqlite3"; // jika belum ada import DB
+
+// Replace endpoint POST /api/orders menjadi ini:
+app.post("/api/orders", (req, res) => {
+  const { product_id, variant_id, name, contact, method, total } = req.body;
+  const createdAt = new Date().toISOString();
+
+  // Buat order
+  const q = db.prepare(`
+    INSERT INTO orders (product_id, variant_id, name, contact, method, total, createdAt)
+    VALUES (?,?,?,?,?,?,?)
+  `);
+
+  const result = q.run(product_id, variant_id, name, contact, method, total, createdAt);
+
+  // Kurangi stok varian -1
+  db.prepare(`
+    UPDATE product_variants SET stock = stock - 1 WHERE id = ?
+  `).run(variant_id);
+
+  // Sync stok produk total
+  db.prepare(`
+    UPDATE products
+    SET stock = (
+      SELECT COALESCE(SUM(stock), 0)
+      FROM product_variants WHERE product_id = ?
+    )
+    WHERE id = ?
+  `).run(product_id, product_id);
+
+  res.json({ id: result.lastInsertRowid, stockAdjusted: true });
+});
+
+
+// ✅ GET DETAIL ORDER BY ID
+app.get("/api/orders/:id", (req, res) => {
+  const id = req.params.id;
+  const sql = `
+    SELECT o.*, 
+      p.name AS product_name,
+      v.title AS variant_title,
+      v.price AS variant_price
+    FROM orders o
+    LEFT JOIN products p ON o.product_id = p.id
+    LEFT JOIN product_variants v ON o.variant_id = v.id
+    WHERE o.id = ?
+  `;
+
+  const row = db.prepare(sql).get(id);
+
+  if (!row) {
+    return res.json({ error: "Order tidak ditemukan" });
+  }
+
+  row.formattedId = "NV" + String(row.id).padStart(5, "0");
+
+  res.json(row);
+});
+
 // ✅ Web UI Route
 app.get("/", (_, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
