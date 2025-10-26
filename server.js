@@ -222,27 +222,6 @@ app.post("/api/login", (req, res) => {
   res.json({ token });
 });
 
-// ✅ Create Order
-app.post("/api/orders", (req, res) => {
-  const q = db.prepare(`
-    INSERT INTO orders (product_id, variant_id, name, contact, method, total, createdAt)
-    VALUES (?,?,?,?,?,?,?)
-  `);
-
-  const createdAt = new Date().toISOString();
-  const result = q.run(
-    req.body.product_id,
-    req.body.variant_id,
-    req.body.name,
-    req.body.contact,
-    req.body.method,
-    req.body.total,
-    createdAt
-  );
-
-  res.json({ id: result.lastInsertRowid });
-});
-
 // ✅ Get Products with Variants
 app.get("/api/products", (req, res) => {
   const products = db.prepare("SELECT * FROM products").all();
