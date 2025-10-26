@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pembayaran Sukses | NavaDigital Shop</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .success-box {
+      background: #fff;
+      padding: 22px;
+      max-width: 420px;
+      width: 90%;
+      margin: 100px auto;
+      border-radius: 14px;
+      text-align: center;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+    }
+    .success-box h3 {
+      color: #00b300;
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    .detail {
+      margin-top: 10px;
+      font-size: 14px;
+      background: #f4f4f4;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: left;
+    }
+    #waBtn {
+      background: #25D366;
+      color: white;
+      font-weight: 600;
+      margin-top: 18px;
+      border: none;
+      width: 100%;
+      padding: 10px;
+      font-size: 15px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="success-box">
+    <h3>✅ Pembayaran Berhasil</h3>
+    <p>Pesanan kamu sedang diproses ✅</p>
+
+    <div class="detail" id="orderDetail"></div>
+
+    <button id="waBtn">Konfirmasi Admin via WhatsApp</button>
+  </div>
+
+  <div class="footer">
+    <button onclick="window.location='index.html'" class="home-btn">Home</button>
+  </div>
+
+  <script>
+(async () => {
+  const orderId = localStorage.getItem("lastOrderId");
+  const detailBox = document.getElementById("orderDetail");
+  const waBtn = document.getElementById("waBtn");
+
+  if (!orderId) {
+    detailBox.innerHTML = `<p style="color:red;">⚠ Data pesanan tidak ditemukan!</p>`;
+    waBtn.style.display = "none";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/orders/" + orderId);
+    const order = await res.json();
+
+    if (!order) {
+      detailBox.innerHTML = `<p style="color:red;">⚠ Data pesanan tidak ditemukan!</p>`;
+      waBtn.style.display = "none";
+      return;
+    }
+
+    const idFormatted = "NV" + String(order.id).padStart(5, "0");
+
+detailBox.innerHTML = `
+  <b>ID Pesanan:</b> <span style="color:#0084ff"><b>${idFormatted}</b></span><br>
+  <b>Produk:</b> ${order.product_name}<br>
+  <b>Paket:</b> ${order.variant_title}<br>
+  <b>Total Bayar:</b> Rp ${(order.total || 0).toLocaleString('id-ID')}<br>
+  <b>Nama Pembeli:</b> ${order.name}<br>
+  <b>Nomor WA:</b> ${order.contact}<br>
+  <span style="font-size:12px;color:#888;">Gunakan ID ini untuk cek status pesanan</span>
+`;
+
+    waBtn.onclick = () => {
+      const pesan = encodeURIComponent(
+        `Halo Admin, saya sudah bayar🙂\n\n` +
+        `📌 Pesanan:\n${order.product_name} - ${order.variant_title}\n` +
+        `💰 Total Bayar: Rp ${(order.total || 0).toLocaleString('id-ID')}\n` +
+        `👤 Nama: ${order.name}\n` +
+        `📱 WA: ${order.contact}\n\n` +
+        `ID Order: ${order.id}`
+      );
+      window.location.href = `https://wa.me/6282129837460?text=${pesan}`;
+    };
+
+  } catch (e) {
+    console.error(e);
+    detailBox.innerHTML = `<p style="color:red;">⚠ Gagal memuat data pesanan!</p>`;
+    waBtn.style.display = "none";
+  }
+})();
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout - NavaDigital Shop</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <style>
+    .checkout-container {
+      max-width: 420px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+    }
+    .checkout-container h2 {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .checkout-container input,
+    .checkout-container select {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    #payBtn {
+      width: 100%;
+      background: #111;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 5px;
+    }
+    #payBtn:hover {
+      background: #333;
+    }
+    .qris-box.hidden { display: none; }
+    .qris-box {
+      background: #fff;
+      padding: 15px;
+      margin-top: 25px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .qris-box img {
+      width: 220px;
+      height: 220px;
+      object-fit: contain;
+      margin-bottom: 8px;
+    }
+    .note {
+      font-size: 13px;
+      color: #444;
+      margin-top: 5px;
+    }
+    #doneBtn {
+      background: #007c00;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-weight: 600;
+      margin-top: 10px;
+      cursor: pointer;
+      width: 100%;
+    }
+    #timer {
+      font-weight: bold;
+      color: #e53935;
+      margin-top: 5px;
+    }
+    .popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.popup.hidden { display: none; }
+
+.popup-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 380px;
+  text-align: center;
+  position: relative;
+}
+
+.close {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  cursor: pointer;
+  font-size: 22px;
+}
+
+.qr-img {
+  width: 240px;
+  height: 240px;
+  margin: 12px 0;
+}
+
+.loader {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  display: inline-block;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+  </style>
+</head>
+<body>
+  <div class="checkout-wrapper">
+  <div id="checkoutBox" class="checkout-container">
+      <h2>Checkout</h2>
+      <p><b>Produk:</b> <span id="productName"></span></p>
+      <p><b>Paket:</b> <span id="productPackage"></span></p>
+
+      <input type="text" id="buyerName" placeholder="Nama Lengkap (wajib diisi)">
+      <input type="text" id="buyerContact" placeholder="Nomor WhatsApp (wajib diisi)">
+      <select id="methodSelect">
+        <option value="QRIS">QRIS</option>
+      </select>
+
+      <button id="payBtn">Buat Pesanan & Tampilkan QR</button>
+  </div>
+</div>
+
+<div id="qrPopup" class="popup hidden">
+  <div class="popup-content">
+    <span id="closeQR" class="close">×</span>
+    <h3>— QRIS ALL PAYMENT —</h3>
+    <p id="timer"></p>
+    <img src="img/qris.jpeg" alt="QRIS" class="qr-img">
+    <p id="summary"></p>
+    <p id="priceDetail"></p>
+    <p id="uniqueCode"></p>
+    <button id="doneBtn" class="done-btn">✅ Tandai Lunas</button>
+  </div>
+</div>
+
+ <div class="footer">
+    <button onclick="window.location='index.html'" class="home-btn">Home</button>
+  </div>
+
+  <script>
+const data = JSON.parse(localStorage.getItem("checkoutData"));
+
+document.getElementById("productName").textContent = data.productName ?? "-";
+document.getElementById("productPackage").textContent = data.variantTitle ?? "-";
+
+let timerInterval;
+let timeLeft = 600;
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      document.getElementById("timer").innerText = "❌ Waktu habis!";
+      return;
+    }
+    const m = String(Math.floor(timeLeft / 60)).padStart(2,"0");
+    const s = String(timeLeft % 60).padStart(2,"0");
+    document.getElementById("timer").innerText = `Waktu pembayaran: ${m}:${s}`;
+  }, 1000);
+}
+
+document.getElementById("payBtn").addEventListener("click", async () => {
+  const name = buyerName.value.trim();
+  const contact = buyerContact.value.trim();
+  const btn = document.getElementById("payBtn");
+
+  if (!name || !contact) {
+    alert("⚠ Nama & nomor WhatsApp wajib diisi!");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = "⏳ Memproses pesanan...";
+
+  const kodeUnik = Math.floor(100 + Math.random() * 900);
+  const total = Number(data.price) + kodeUnik;
+
+  document.getElementById("summary").innerHTML =
+    `<b>${data.productName}</b> — ${data.variantTitle}`;
+
+  document.getElementById("priceDetail").innerHTML =
+    `Total Bayar: <b>Rp ${total.toLocaleString("id-ID")}</b>`;
+
+  document.getElementById("uniqueCode").innerHTML =
+    `Kode Unik: <b>${kodeUnik}</b>`;
+
+  localStorage.setItem("orderPayment", JSON.stringify({
+    productId: data.productId,
+    productName: data.productName,
+    variantId: data.variantId,
+    variantTitle: data.variantTitle,
+    price: data.price,
+    nameBuyer: name,
+    contact,
+    kodeUnik,
+    total
+  }));
+
+  await new Promise(r => setTimeout(r, 1000));
+
+  document.getElementById("checkoutBox").classList.add("hidden");
+  document.getElementById("qrPopup").classList.remove("hidden");
+
+  startTimer();
+
+  btn.disabled = false;
+  btn.innerHTML = "Buat Pesanan & Tampilkan QR";
+});
+
+document.getElementById("closeQR").onclick = () =>
+  document.getElementById("qrPopup").classList.add("hidden");
+
+document.getElementById("doneBtn").onclick = async () => {
+  console.log("✅ Done clicked!");
+
+  const pay = JSON.parse(localStorage.getItem("orderPayment"));
+  if (!pay) return alert("Data pesanan tidak ditemukan!");
+
+  const payload = {
+    product_id: pay.productId,
+    variant_id: pay.variantId,
+    name: pay.nameBuyer,
+    contact: pay.contact,
+    method: "QRIS",
+    total: pay.total
+  };
+
+  try {
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+    console.log("✅ Order saved:", result);
+
+    if (!result.id) {
+      alert("❌ Gagal menyimpan pesanan!");
+      return;
+    }
+
+    localStorage.setItem("lastOrderId", result.id);
+
+    localStorage.removeItem("orderPayment");
+    localStorage.removeItem("checkoutData");
+
+    window.location.href = "success.html";
+
+  } catch (e) {
+    console.error(e);
+    alert("⚠ Gagal menghubungi server!");
+  }
+};
+
+</script>
+  
+</body>
+</html>

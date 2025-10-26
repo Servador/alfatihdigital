@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Panel — NavaDigital</title>
+
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280;
+    --brand:#111; --brand-2:#00b894; --danger:#e53935; --warn:#f59e0b;
+    --border:#e5e7eb; --chip:#eef2ff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    background:var(--bg); color:var(--text);
+  }
+  .wrap{max-width:1100px; margin:24px auto; padding:0 16px;}
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .title{font-weight:800; font-size:22px; letter-spacing:.2px}
+  .logout{background:var(--danger); color:#fff; border:0; padding:10px 14px; border-radius:10px; cursor:pointer}
+  .grid{display:grid; gap:18px}
+  @media(min-width:900px){ .grid{grid-template-columns:1fr} }
+
+  .card{
+    background:var(--card); border:1px solid var(--border);
+    border-radius:16px; box-shadow:0 6px 14px rgba(0,0,0,.04);
+  }
+  .card h3{margin:0; padding:16px 18px; border-bottom:1px solid var(--border)}
+  .table-wrap{overflow:auto}
+  table{width:100%; border-collapse:collapse; min-width:880px}
+  th,td{padding:12px 14px; border-bottom:1px solid var(--border); vertical-align:top}
+  th{background:#fafafa; font-weight:700; text-align:left}
+  .muted{color:var(--muted)}
+  .input, .select{
+    width:100%; padding:9px 11px; border:1px solid var(--border);
+    border-radius:10px; background:#fff; outline:none;
+  }
+  .btn{
+    background:var(--brand); color:#fff; border:0; padding:9px 12px;
+    border-radius:10px; cursor:pointer; font-weight:600;
+  }
+  .btn.secondary{background:#374151}
+  .btn.ghost{background:#fff; color:var(--text); border:1px solid var(--border)}
+  .btn.success{background:var(--brand-2)}
+  .btn.warn{background:var(--warn); color:#111}
+  .btn.danger{background:var(--danger)}
+  .chip{display:inline-block; padding:4px 8px; border-radius:999px; background:var(--chip); font-size:12px}
+  .row-actions{display:flex; gap:8px; flex-wrap:wrap}
+  details.varlist summary{cursor:pointer; list-style:none}
+  details.varlist summary::-webkit-details-marker{display:none}
+  .var-pill{display:flex; align-items:center; gap:8px; margin:6px 0; padding:8px 10px; background:#fafafa; border:1px solid var(--border); border-radius:10px}
+  .var-pill input{max-width:160px}
+  .inline{display:flex; gap:8px; align-items:center}
+  .section-actions{display:flex; gap:10px; flex-wrap:wrap}
+  .tiny{font-size:12px}
+  .status-select{min-width:130px}
+
+  .modal{position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:1000}
+  .hidden{display:none}
+  .modal-content{
+    width:360px; background:#fff; border-radius:14px; padding:18px; border:1px solid var(--border);
+    box-shadow:0 20px 40px rgba(0,0,0,.2);
+  }
+  .modal-content h3{margin:0 0 12px}
+  .modal-content .input{margin:6px 0}
+  .modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:10px}
+  #closeEditModal{background:#ddd; border:0; padding:8px 12px; border-radius:10px; cursor:pointer}
+  #saveEditProduct{background:#06c167; color:#fff; border:0; padding:8px 12px; border-radius:10px; cursor:pointer}
+
+  .var-pill input {
+  max-width: 140px !important;
+  font-weight:600;
+}
+
+.var-pill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.var-pill input {
+  min-width: 110px;
+  font-size: 13px;
+  padding: 6px 8px;
+}
+
+.var-pill .inline {
+  display: flex;
+  gap: 8px;
+}
+.var-pill button {
+  min-width: 55px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="title">📊 Admin Panel — NavaDigital</div>
+    <div class="section-actions">
+      <button class="btn ghost" onclick="location.href='index.html'">Lihat Toko</button>
+      <button id="logoutBtn" class="logout">Logout</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Daftar Produk & Varian</h3>
+      <div class="table-wrap">
+        <table id="prodTable">
+          <thead>
+            <tr>
+              <th style="width:60px">ID</th>
+              <th>Produk</th>
+              <th style="width:180px">Kategori</th>
+              <th style="width:140px">Stok</th>
+              <th>Varian</th>
+              <th style="width:210px">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="prodBody"></tbody>
+        </table>
+      </div>
+
+      <div style="padding:14px 18px; border-top:1px solid var(--border)">
+        <div class="inline" style="flex-wrap:wrap">
+          <select id="addVarProduct" class="select" style="min-width:220px"></select>
+          <input id="addVarTitle" class="input" placeholder="Nama Paket (cth: 1 Bulan / 86 Diamond)">
+          <input id="addVarPrice" class="input" placeholder="Harga (angka)">
+          <button id="addVarBtn" class="btn">Tambah Varian</button>
+          <span class="muted tiny">Tip: harga dalam rupiah tanpa titik.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Daftar Pesanan</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:70px">ID</th>
+              <th>Nama</th>
+              <th>Produk</th>
+              <th>Varian</th>
+              <th style="width:120px">Total</th>
+              <th style="width:140px">Status</th>
+              <th style="width:180px">Tanggal</th>
+            </tr>
+          </thead>
+          <tbody id="orderBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="editProductModal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Edit Produk</h3>
+    <input type="text" id="editName" class="input" placeholder="Nama Produk">
+    <input type="text" id="editCategory" class="input" placeholder="Kategori">
+    <input type="text" id="editImage" class="input" placeholder="URL/Gambar (mis. img/netflix.png)">
+    <input type="number" id="editStock" class="input" placeholder="Stok">
+
+    <div class="modal-actions">
+      <button id="closeEditModal">Batal</button>
+      <button id="saveEditProduct">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem("adminToken");
+if (!token) {
+  window.location = "login.html";
+}
+
+ function authFetch(url, opts={}) {
+  const token = localStorage.getItem('adminToken');
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers||{}) };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+
+  return fetch(url, { ...opts, headers }).then(res => {
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('adminToken');
+      window.location = "login.html";
+      return;
+    }
+    return res;
+  });
+}
+  const escAttr = s => String(s ?? '').replace(/"/g,'&quot;');
+
+  async function loadProducts() {
+    const res = await authFetch('/api/admin/products');
+    const data = await res.json();
+    const body = document.getElementById('prodBody');
+    const opt = document.getElementById('addVarProduct');
+    body.innerHTML = ''; opt.innerHTML = '';
+
+    data.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id; o.textContent = `${p.id} — ${p.name}`;
+      opt.appendChild(o);
+
+      const tr = document.createElement('tr');
+
+      const stokHtml = `
+  <div class="inline">
+    <span><b>${p.stock ?? 0}</b> total</span>
+  </div>
+`;
+
+      const variantsHTML = (p.variants||[]).map(v => (`
+  <div class="var-pill">
+    <span class="chip">#${v.id}</span>
+
+    <input class="input" id="vtitle-${v.id}" 
+           value="${v.title}" style="max-width:130px;font-size:13px">
+
+    <div class="inline" style="margin-left:auto">
+      <span class="muted">Rp</span>
+      <input class="input" id="vprice-${v.id}" type="number"
+             value="${v.price}" style="max-width:80px">
+
+      <input class="input" id="vstock-${v.id}" type="number"
+             value="${v.stock}" style="max-width:60px">
+
+      <button class="btn success tiny" onclick="saveVariantPrice(${v.id})">Save</button>
+      <button class="btn danger tiny" onclick="deleteVariant(${v.id})">Hapus</button>
+    </div>
+  </div>
+`)).join('');
+
+      tr.innerHTML = `
+        <td><b>${p.id}</b></td>
+        <td>
+          <div style="font-weight:700">${p.name}</div>
+          <div class="muted tiny">${p.image || '-'}</div>
+        </td>
+        <td>
+  <select class="select" id="cat-${p.id}">
+    ${["Pulsa","Game","Aplikasi Premium","Sosmed"].map(c =>
+      `<option value="${c}" ${p.category === c ? 'selected':''}>${c}</option>`
+    ).join("")}
+  </select>
+</td>
+        <td>${stokHtml}</td>
+        <td>
+          <details class="varlist">
+            <summary>
+              <span class="btn ghost tiny">Lihat/Sembunyikan</span>
+              <span class="muted tiny" style="margin-left:6px">${(p.variants||[]).length} varian</span>
+            </summary>
+            <div style="margin-top:8px">${variantsHTML}</div>
+          </details>
+        </td>
+        <td class="row-actions">
+          <button
+            class="btn warn tiny"
+            onclick="openEditModal(this)"
+            data-id="${p.id}"
+            data-name="${escAttr(p.name)}"
+            data-category="${escAttr(p.category)}"
+            data-image="${escAttr(p.image || '')}"
+            data-stock="${p.stock ?? 0}"
+          >Edit Produk</button>
+        </td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+
+  let editingId = null;
+  const modal = document.getElementById('editProductModal');
+  const closeBtn = document.getElementById('closeEditModal');
+  const saveBtn  = document.getElementById('saveEditProduct');
+
+  function openEditModal(btn){
+    const d = btn.dataset;
+    editingId = +d.id;
+    document.getElementById('editName').value     = d.name || '';
+    document.getElementById('editCategory').value = d.category || '';
+    document.getElementById('editImage').value    = d.image || '';
+    document.getElementById('editStock').value    = d.stock || 0;
+    modal.classList.remove('hidden');
+  }
+  closeBtn.onclick = () => modal.classList.add('hidden');
+  modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.classList.add('hidden'); });
+
+  saveBtn.onclick = async () => {
+    const payload = {
+      name: document.getElementById('editName').value.trim(),
+      category: document.getElementById('editCategory').value.trim(),
+      image: document.getElementById('editImage').value.trim(),
+      stock: +document.getElementById('editStock').value || 0
+    };
+    await authFetch(`/api/admin/product/${editingId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    });
+    toast("Produk berhasil diperbarui");
+    modal.classList.add('hidden');
+    await loadProducts();
+  };
+
+  async function saveVariantPrice(variantId){
+  const elPrice = document.getElementById(`vprice-${variantId}`);
+  const elTitle = document.getElementById(`vtitle-${variantId}`);
+  const elStock = document.getElementById(`vstock-${variantId}`);
+
+  const price = +elPrice.value || 0;
+  const title = elTitle?.value?.trim() || elTitle?.dataset.value || '';
+  const stock = +elStock?.value || 0;
+
+  await authFetch(`/api/admin/variant/${variantId}`, {
+    method:'PUT',
+    body: JSON.stringify({ title, price, stock })
+  });
+
+  toast('Varian tersimpan');
+  loadProducts();
+}
+
+  async function deleteVariant(variantId){
+    if(!confirm('Hapus varian ini?')) return;
+    await authFetch(`/api/admin/variant/${variantId}`, { method:'DELETE' });
+    toast('Varian dihapus');
+    loadProducts();
+  }
+  document.getElementById('addVarBtn').addEventListener('click', async ()=>{
+    const product_id = +document.getElementById('addVarProduct').value;
+    const title = document.getElementById('addVarTitle').value.trim();
+    const price = +document.getElementById('addVarPrice').value || 0;
+    if(!product_id || !title || !price){ toast('Lengkapi data varian', true); return; }
+    await authFetch(`/api/admin/product/${product_id}/variant`, {
+      method:'POST',
+      body: JSON.stringify({ title, price })
+    });
+    document.getElementById('addVarTitle').value='';
+    document.getElementById('addVarPrice').value='';
+    toast('Varian ditambahkan');
+    loadProducts();
+  });
+
+  async function loadOrders(){
+    const res = await authFetch('/api/admin/orders');
+    const data = await res.json();
+    const body = document.getElementById('orderBody');
+    body.innerHTML = '';
+    data.forEach(o=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><b>${o.id}</b></td>
+        <td>
+          <div>${o.name || '-'}</div>
+          <div class="muted tiny">${o.contact || ''}</div>
+        </td>
+        <td>${o.product_name || '-'}</td>
+        <td>${o.variant_title || '-'}</td>
+        <td>Rp ${(+o.total||0).toLocaleString('id-ID')}</td>
+        <td>
+          <div class="inline">
+            <select class="select status-select" id="st-${o.id}">
+              ${['pending','paid','done','canceled'].map(s =>
+                `<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`
+              ).join('')}
+            </select>
+            <button class="btn success tiny" onclick="saveOrderStatus(${o.id})">Save</button>
+          </div>
+        </td>
+        <td>${new Date(o.createdAt).toLocaleString('id-ID')}</td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+  async function saveOrderStatus(orderId){
+    const status = document.getElementById(`st-${orderId}`).value;
+    await authFetch(`/api/admin/orders/${orderId}/status`, {
+      method:'POST',
+      body: JSON.stringify({ status })
+    });
+    toast('Status pesanan tersimpan');
+    await Promise.all([loadOrders(), loadProducts()]);
+  }
+
+  function toast(msg, isErr=false){
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = `
+      position:fixed; left:50%; transform:translateX(-50%); bottom:24px;
+      background:${isErr?'#e11d48':'#111'}; color:#fff; padding:10px 14px; border-radius:10px;
+      box-shadow:0 10px 30px rgba(0,0,0,.2); z-index:9999; font-weight:600
+    `;
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(), 1800);
+  }
+
+  document.getElementById('logoutBtn').onclick = ()=>{
+  localStorage.removeItem('adminToken');
+  location.href = 'login.html';
+};
+
+  (async ()=>{
+    try{
+      await loadProducts();
+      await loadOrders();
+    }catch(e){
+      console.error(e);
+      toast('Gagal memuat data. Pastikan sudah login & server hidup.', true);
+    }
+  })();
+</script>
+</body>
+</html>

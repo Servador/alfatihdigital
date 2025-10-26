@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Al-Fatih Digital Store</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">Al-FatihDigital</div>
+    <div class="search-container">
+      <input type="text" id="searchInput" placeholder="Cari produk...">
+      <button id="searchBtn">Cari</button>
+    </div>
+    <div class="profile">
+      <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="profile-icon" onclick="window.location='login.html'">
+    </div>
+  </header>
+
+  <section class="banner">
+    <img src="img/banner.jpeg" alt="Banner Promosi">
+  </section>
+
+  <section class="categories">
+  <div class="cat" onclick="filterCategory('Pulsa')">
+    <div class="icon-circle">📱</div>
+    <p>Pulsa</p>
+  </div>
+  <div class="cat" onclick="filterCategory('Aplikasi Premium')">
+    <div class="icon-circle">💎</div>
+    <p>Premium</p>
+  </div>
+  <div class="cat" onclick="filterCategory('all')">
+  <div class="icon-circle">🌐</div>
+  <p>Semua</p>
+</div>
+  <div class="cat" onclick="filterCategory('Suntik Sosmed')">
+    <div class="icon-circle">📸</div>
+    <p>Sosmed</p>
+  </div>
+  <div class="cat" onclick="filterCategory('Game')">
+    <div class="icon-circle">🎮</div>
+    <p>Game</p>
+  </div>
+</section>
+
+  <section id="productGrid" class="product-grid"></section>
+
+  <div id="popup" class="popup hidden">
+    <div class="popup-content">
+      <span id="closePopup" class="close">&times;</span>
+      <h3 id="popupTitle"></h3>
+      <div id="variantList"></div>
+    </div>
+  </div>
+
+  <div id="infoPopup" class="popup hidden">
+    <div class="popup-content">
+      <span class="close" onclick="closeInfoPopup()">&times;</span>
+      <div id="infoContent"></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <button onclick="showGuide()">Cara Order</button>
+    <button class="home-btn" onclick="window.location='index.html'">Home</button>
+    <button onclick="checkOrder()">Cek Pesanan</button>
+  </footer>
+
+  <script src="app.js"></script>
+<div id="packagePopup" class="info-popup hidden">
+  <div class="info-popup-content">
+    <span class="close" onclick="closePackagePopup()">×</span>
+    <h3 id="popupProductName">Pilih Paket</h3>
+    <div id="packageList"></div>
+  </div>
+</div>
+
+</body>
+</html>
