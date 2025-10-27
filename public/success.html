@@ -99,9 +99,10 @@ detailBox.innerHTML = `
         `💰 Total Bayar: Rp ${(order.total || 0).toLocaleString('id-ID')}\n` +
         `👤 Nama: ${order.name}\n` +
         `📱 WA: ${order.contact}\n\n` +
+        `🕒 Waktu Pesanan: ${new Date(order.createdAt).toLocaleString('id-ID')}\n` +
         `ID Order: ${order.id}`
       );
-      window.location.href = `https://wa.me/6282129837460?text=${pesan}`;
+      window.location.href = `https://wa.me/6287864684020?text=${pesan}`;
     };
 
   } catch (e) {
