@@ -393,7 +393,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Redirect www ke non-www
 app.use((req, res, next) => {
-  if (req.headers.host.startsWith("www.")) {
+  if (req.headers.host && req.headers.host.startsWith("www.")) {
     return res.redirect(301, "https://" + req.headers.host.slice(4) + req.url);
   }
   next();
