@@ -350,15 +350,6 @@ app.post("/api/admin/product/:id/variant", verifyToken, (req, res) => {
   res.json({ success: true });
 });
 
-// ✅ Update varian (harga + stok + judul)
-app.put("/api/admin/variant/:id", verifyToken, (req, res) => {
-  const { title, price, stock } = req.body;
-  db.prepare(`
-    UPDATE product_variants SET title=?, price=?, stock=? WHERE id=?
-  `).run(title, price, stock, req.params.id);
-  res.json({ success: true });
-});
-
 // ✅ Hapus varian
 app.delete("/api/admin/variant/:id", verifyToken, (req, res) => {
   db.prepare("DELETE FROM product_variants WHERE id=?")
