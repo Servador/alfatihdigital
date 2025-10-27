@@ -391,6 +391,21 @@ app.put("/api/admin/variant/:id", verifyToken, (req, res) => {
 // ✅ Serve Frontend Files
 app.use(express.static(path.join(__dirname, "public")));
 
+// Redirect www ke non-www
+app.use((req, res, next) => {
+  if (req.headers.host.startsWith("www.")) {
+    return res.redirect(301, "https://" + req.headers.host.slice(4) + req.url);
+  }
+  next();
+});
+
+app.use((req, res, next) => {
+  if (req.headers["x-forwarded-proto"] !== "https") {
+    return res.redirect("https://" + req.headers.host + req.url);
+  }
+  next();
+});
+
 // ✅ Redirect unknown routes ke index.html (untuk domain root)
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
