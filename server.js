@@ -388,5 +388,13 @@ app.put("/api/admin/variant/:id", verifyToken, (req, res) => {
 });
 
 // ✅ Run Server
+// ✅ Serve Frontend Files
+app.use(express.static(path.join(__dirname, "public")));
+
+// ✅ Redirect unknown routes ke index.html (untuk domain root)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server berjalan di PORT ${PORT}`));
