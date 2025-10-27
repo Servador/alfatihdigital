@@ -834,7 +834,7 @@ body {
 .floating-wa {
   position: fixed;
   right: 18px;
-  bottom: 18px;
+  bottom: 80px; /* ✅ naik dari 18 → 80 */
   width: 60px;
   height: 60px;
   background: #25D366;
@@ -846,7 +846,31 @@ body {
   z-index: 9999;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
+
 .floating-wa img {
   width: 35px;
   height: 35px;
+}
+
+/* ✅ Jika di layar kecil, naikin lebih tinggi lagi */
+@media (max-width: 480px) {
+  .floating-wa {
+    bottom: 100px;
+    width: 55px;
+    height: 55px;
+  }
+  .floating-wa img {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@keyframes pulseWA {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.floating-wa {
+  animation: pulseWA 1.8s infinite ease-in-out;
 }
