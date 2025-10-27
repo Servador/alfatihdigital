@@ -87,6 +87,7 @@ detailBox.innerHTML = `
   <b>Produk:</b> ${order.product_name}<br>
   <b>Paket:</b> ${order.variant_title}<br>
   <b>Total Bayar:</b> Rp ${(order.total || 0).toLocaleString('id-ID')}<br>
+  <b>Waktu:</b> ${new Date(order.createdAt).toLocaleString('id-ID')}<br>
   <b>Nama Pembeli:</b> ${order.name}<br>
   <b>Nomor WA:</b> ${order.contact}<br>
   <span style="font-size:12px;color:#888;">Gunakan ID ini untuk cek status pesanan</span>
